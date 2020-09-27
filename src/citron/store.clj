@@ -1,11 +1,10 @@
-(ns citron.store
-  (:require
-   [environ.core :refer [env]]
-   [sparrows.misc :refer [uuid]]
-   [clojure.core.cache.wrapped :as c]))
+(ns citron.store)
 
-(defonce ttl-store (delay (c/ttl-cache-factory {} :ttl (env :session-ttl (* 3600 24 1000)))))
+(defonce msg-store (atom ""))
 
-(defn gen-session [session]
-  (let [id (uuid)]
-    (c/through-cache @ttl-store id (constantly session))))
+(defn set-msg [msg]
+  (reset! msg-store msg))
+
+(defn get-msg []
+  @msg-store)
+
