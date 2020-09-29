@@ -24,7 +24,9 @@
   (not (nil? (:identity session))))
 
 (def access-rules
-  [{:pattern #"^/pub/.*"
+  [{:uri "/"
+    :handler any-access}
+   {:pattern #"^/pub/.*"
     :handler any-access}
    {:pattern #"^/.*"
     :handler check-identity}])

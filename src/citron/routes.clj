@@ -11,6 +11,7 @@
    [compojure.core       :refer [defroutes PUT GET DELETE POST]]
    [ring.util.response   :refer [redirect response header status not-found]]))
 
+(def ^:private default-root "/var/www/public")
 
 (defn- check-login [{:keys [username password]}]
   (and (= username password "hello") {:username username}))
@@ -29,7 +30,7 @@
 
 (defn to-os-file [& paths]
   {:pre [(not (some (fn [path] (s/includes? path "..")) paths))]}
-  (let [root (env :root ".")]
+  (let [root (env :root default-root)]
     (apply io/file root (mapv (fn [path] (s/replace path "//" "/")) paths))))
 
 (defn previewable? [file mime]
@@ -106,7 +107,11 @@
           (header "content-type" (or (get-mime f) "application/binary")))
       (not-found "Not found!"))))
 
+(defn handle-get-index [_]
+  (redirect "/index.html"))
+
 (defroutes api-routes
+  (GET "/" _ handle-get-index)
   (POST "/pub/login" _ handle-post-login)
   (GET "/pub/logout" _ handle-get-logout)
   (GET "/file" _ handle-get-file)
