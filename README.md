@@ -5,7 +5,13 @@ A file server written in Clojure
 # To start
 
 ```bash
-ROOT=/var/www/public LOG_LEVEL=info  lein run 
+CITRON_FILE_ROOT=/var/www/public \
+CITRON_MAX_PREVIEW_SIZE=1024  \ #size in kb
+CITRON_LOG_FILE=citron.log
+CITRON_LOG_LEVEL=info \
+CITRON_ip=0.0.0.0 \
+CITRON_PORT=9090 \
+lein run 
 ```
 
 

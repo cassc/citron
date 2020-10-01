@@ -16,6 +16,7 @@
    [compojure.route                             :as route]
    [taoensso.timbre                             :as t :refer [default-timestamp-opts]]
    [org.httpkit.server                          :refer [run-server]]
+   [clojure.string :as s]
    [buddy.auth.accessrules                      :refer [wrap-access-rules]]))
 
 (def any-access (constantly true))
@@ -35,9 +36,9 @@
   []
   {:timestamp-opts (merge default-timestamp-opts {:pattern "yy-MM-dd HH:mm:ss.SSS ZZ"
                                                   :timezone (java.util.TimeZone/getTimeZone "Asia/Shanghai")})
-   :level          (keyword (env :log-level "info"))
+   :level          (keyword (env :citron-log-level "info"))
    :appenders      {:rolling (rolling-appender
-                              {:path    (env :log-file "citron.log")
+                              {:path    (env :citron-log-file "citron.log")
                                :pattern :monthly})}})
 
 (defonce tm-server (atom nil))
@@ -121,9 +122,10 @@
       (handler req))))
 
 (defn start-server []
-  (let [dev? (env :dev)
-        options {:port (Integer/parseInt (env :port "9090"))
-                 :ip (env :ip "127.0.0.1")}]
+  (let [dev? (not (s/blank? (env :dev)))
+        options {:port (Integer/parseInt (env :citron-port "9090"))
+                 :ip (env :citron-ip "0.0.0.0")
+                 :max-body (Integer/MAX_VALUE)}]
     (t/info "Dev mode? " (if dev? "true" "false"))
     (reset! tm-server (run-server
                        (if dev?

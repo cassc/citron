@@ -7,11 +7,18 @@
    [clojure.java.io :as io]
    [taoensso.timbre      :as t]
    [sparrows.system :refer [get-mime]]
+   [sparrows.misc :refer [str->num]]
+   [sparrows.time :as time]
    [clojure.string       :as s]
    [compojure.core       :refer [defroutes PUT GET DELETE POST]]
-   [ring.util.response   :refer [redirect response header status not-found]]))
+   [ring.util.response   :refer [redirect response header status not-found]])
+  (:import
+   [java.io File]
+   [citron FileTranverse]))
 
 (def ^:private default-root "/var/www/public")
+
+(def page-size 100)
 
 (defn- check-login [{:keys [username password]}]
   (and (= username password "hello") {:username username}))
@@ -30,7 +37,7 @@
 
 (defn to-os-file [& paths]
   {:pre [(not (some (fn [path] (s/includes? path "..")) paths))]}
-  (let [root (env :root default-root)]
+  (let [root (env :citron-file-root default-root)]
     (apply io/file root (mapv (fn [path] (s/replace path "//" "/")) paths))))
 
 (defn previewable? [file mime]
@@ -38,32 +45,37 @@
        (or (not mime)
            (s/includes? mime "text")
            (s/includes? mime "json"))
-       (< (.length file) (* (env :max-preview-size 1024) 1024))))
+       (< (.length file) (* (str->num (env :citron-max-preview-size 1024)) 1024))))
+
+(defn- all-files-in-path [path file]
+  (FileTranverse/listDiretory path file))
 
 (defn handle-get-file
   "Get file or path meta information"
   [{:keys [params]}]
   (response
-   (let [{:keys [path]} params
-         file (to-os-file path)]
+   (let [{:keys [path offset]} params
+         file                  (to-os-file path)
+         offset                (or (str->num offset) 0)]
      (if (.exists file)
-       (let [isdir (.isDirectory file)
-             mime (when-not isdir (get-mime file))
-             content (when (previewable? file mime)
-                       (slurp file))
-             files (when isdir
-                     (some->> (mapv
-                               (fn [f]
-                                 {:isdir (.isDirectory f)
-                                  :path (str path "/" (.getName f))
-                                  :exists true
-                                  :mime (when (.isFile f) (get-mime f))})
-                               (.listFiles file))))]
-         (success {:exists true
-                   :path path
-                   :isdir isdir
-                   :mime mime
-                   :files files
+       (let [isdir     (.isDirectory file)
+             mime      (when-not isdir (get-mime file))
+             content   (when (previewable? file mime)
+                         (slurp file))
+             all-files (when isdir
+                         (all-files-in-path path (to-os-file path)))
+             total     (count all-files)
+             files     (->> all-files (drop offset) (take page-size))
+             more      (< (+ offset page-size) total)]
+         (success {:exists  true
+                   :offset  offset
+                   :total   total
+                   :more    more
+                   :path    path
+                   :isdir   isdir
+                   :size    (when (not isdir) (.length file))
+                   :mime    mime
+                   :files   files
                    :content content}))
        (cds :not-exist)))))
 
@@ -71,6 +83,7 @@
   (response
    (let [{:keys [path]} params
          file (to-os-file path)]
+     (io/copy file (File/createTempFile (str "del-" (time/long->date-string (time/now-in-millis))) (.getName file)))
      (io/delete-file file true)
      (success))))
 
@@ -110,6 +123,17 @@
 (defn handle-get-index [_]
   (redirect "/index.html"))
 
+(defn handle-post-rename [{:keys [params]}]
+  (let [{:keys [path filename]} params
+        f (to-os-file path)
+        nf (io/file (.getParentFile f) (s/trim filename))]
+    (response
+     (if (and (.exists f) (not (s/blank? filename)))
+       (do
+         (.renameTo f nf)
+         (success))
+       (cds :not-exist)))))
+
 (defroutes api-routes
   (GET "/" _ handle-get-index)
   (POST "/pub/login" _ handle-post-login)
@@ -117,6 +141,7 @@
   (GET "/file" _ handle-get-file)
   (DELETE "/file" _ handle-delete-file)
   (PUT "/file" _ handle-put-file)
+  (POST "/rename" _ handle-post-rename)
   (PUT "/msg" _ handle-put-msg)
   (GET "/msg" _ handle-get-msg)
   (GET "/static/file" _ handle-get-static-file))

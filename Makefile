@@ -3,11 +3,7 @@ clean:
 build: clean
 	lein uberjar
 sync-jar:
-	rsync -av target/*-standalone.jar hk:/home/garfield/staged/jars/citron/
-	rsync -av config-citron.edn hk:/home/garfield/staged/jars/citron/config-citron.edn
-	rsync -av project.clj hk:/home/garfield/staged/jars/citron/
+	rsync -aRv target/*-standalone.jar pismall:/opt/apps/citron/
+	rsync -aRv resources/public/ pismall:/opt/apps/citron/resources/public/
+	rsync -aRv citron.sh pismall:/opt/apps/citron/
 deploy: build sync-jar
-	ansible-playbook citron-ansible.yml
-sync-source:
-	csync-projects.sh citron hk "/home/garfield/"
-	rsync -av config-citron.edn hk:/home/garfield/projects/citron/config-citron.edn

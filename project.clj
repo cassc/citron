@@ -34,7 +34,8 @@
                  [com.rpl/specter "1.1.2"]
                  [net.glxn.qrgen/javase "2.0"] ;; qrcode
                  [org.clojure/core.async "1.1.587"]]
-
+  :plugins [[lein-environ "1.2.0"]]
+  :java-source-paths ["src-java"]
   :profiles {:uberjar {:aot [citron.core]}
              :dev {:env {:dev true}
                    :source-paths ["src-dev"]
