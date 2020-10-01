@@ -121,7 +121,10 @@
       (not-found "Not found!"))))
 
 (defn handle-get-index [_]
-  (redirect "/index.html"))
+  (let [prof (if (s/blank? (env :dev))
+               "prod"
+               "dev")]
+    (redirect (format "/index-%s.html" prof))))
 
 (defn handle-post-rename [{:keys [params]}]
   (let [{:keys [path filename]} params
