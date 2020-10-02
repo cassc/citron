@@ -4,6 +4,7 @@
   (:require
    [citron.routes                         :refer [api-routes]]
    [citron.mime :refer [more-mime-types]]
+   [citron.store :refer [start-msg-store! persist-db!]]
    [shared.utils                                 :as utils :refer [dissoc-empty-val-and-trim destroy-lazy-pools exception-handler]]
    [taoensso.timbre.appenders.3rd-party.rolling :refer [rolling-appender]]
    [sparrows.system                             :refer [register-shutdownhook]]
@@ -147,8 +148,10 @@
 (defn init! []
   (t/info "Server starting ...")
   (t/merge-config! (make-timbre-config))
+  (start-msg-store!)
   (register-shutdownhook
    #(try
+      (persist-db!)
       (destroy-lazy-pools)
       (catch Throwable e
         (t/error e "Error caught when shutting down ..."))

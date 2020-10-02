@@ -1,4 +1,5 @@
 .cpcache/
+.citron.msg.edn
 .nrepl-port
 /target
 *.log
