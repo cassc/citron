@@ -3,12 +3,15 @@
   (:gen-class)
   (:require
    [citron.routes                         :refer [api-routes]]
+   [citron.mime :refer [more-mime-types]]
    [shared.utils                                 :as utils :refer [dissoc-empty-val-and-trim destroy-lazy-pools exception-handler]]
    [taoensso.timbre.appenders.3rd-party.rolling :refer [rolling-appender]]
    [sparrows.system                             :refer [register-shutdownhook]]
    [environ.core                                :refer [env]]
    [compojure.core                              :refer [defroutes routes]]
    [ring.middleware.defaults                    :refer :all]
+   [ring.middleware.partial-content :refer [wrap-partial-content]]
+   [ring.middleware.content-type :refer [wrap-content-type]]
    [ring.middleware.json                        :refer [wrap-json-response wrap-json-params]]
    ;;[ring.middleware.session :refer [wrap-session]]
    [ring.util.response                          :refer [header]]
@@ -81,8 +84,8 @@
 (defroutes not-found-routes
   (route/not-found "Not found"))
 
-(defroutes resource-routes
-  (route/resources "/public"))
+;; (defroutes resource-routes
+;;   (route/resources "/public"))
 
 (def x-routes [api-routes not-found-routes])
 
@@ -104,13 +107,15 @@
 (def app (->
           (apply routes x-routes)
           wrap-json-response
+          (wrap-content-type {:mime-types more-mime-types}) ;; place this before any response with a content-type
           (wrap-access-rules {:rules access-rules :on-error denied})
           wrap-logging
           wrap-aid
           (wrap-defaults (-> site-defaults
                              ;;(assoc-in [:session :store] (redis-session-store))
                              (assoc-in [:security :anti-forgery] false)))
-          wrap-json-params))
+          wrap-json-params
+          wrap-partial-content))
 
 (defn wrap-no-cache
   "Disable cache for GET/HEAD requests.
@@ -150,7 +155,7 @@
       (finally
         (t/info "Cleaning success!")))))
 
-(defonce initer (delay (init!)))
+(def initer (delay (init!)))
 
 (defn -main []
   @initer

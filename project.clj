@@ -20,6 +20,7 @@
                  [ring "1.5.0"]
                  [ring/ring-json "0.4.0"] ;; handling json-body request
                  [ring/ring-defaults "0.2.1"] ;; supports auto set utf8 encoding in content-type
+                 [ring-partial-content "2.0.1"]
                  [org.slf4j/slf4j-jdk14 "1.7.21"]
                  [dk.ative/docjure "1.10.0"]
                  ;; shell

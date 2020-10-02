@@ -2,11 +2,13 @@
   (:require
    [citron.config :refer [cds success]]
    [citron.store :as store]
+   [citron.mime :refer [more-mime-types]]
    
    [environ.core :refer [env]]
    [clojure.java.io :as io]
    [taoensso.timbre      :as t]
-   [sparrows.system :refer [get-mime]]
+   ;; [sparrows.system :refer [get-mime]]
+   [ring.util.mime-type :refer [ext-mime-type]]
    [sparrows.misc :refer [str->num]]
    [sparrows.time :as time]
    [clojure.string       :as s]
@@ -50,6 +52,9 @@
 (defn- all-files-in-path [path file]
   (FileTranverse/listDiretory path file))
 
+(defn- get-mime [uri]
+  (ext-mime-type uri more-mime-types))
+
 (defn handle-get-file
   "Get file or path meta information"
   [{:keys [params]}]
@@ -59,7 +64,7 @@
          offset                (or (str->num offset) 0)]
      (if (.exists file)
        (let [isdir     (.isDirectory file)
-             mime      (when-not isdir (get-mime file))
+             mime      (when-not isdir (get-mime path))
              content   (when (previewable? file mime)
                          (slurp file))
              all-files (when isdir
@@ -117,7 +122,7 @@
       (-> f
           (response)
           (header "filename" (.getName f))
-          (header "content-type" (or (get-mime f) "application/binary")))
+          (header "content-type" (or (get-mime path) "application/binary")))
       (not-found "Not found!"))))
 
 (defn handle-get-index [_]
@@ -137,6 +142,13 @@
          (success))
        (cds :not-exist)))))
 
+(defn handle-get-staticfile-by-path [req]
+  (let [path (get-in req [:params :path])
+        f (to-os-file path)]
+    (if (.exists f)
+      f
+      (not-found "Not found!"))))
+
 (defroutes api-routes
   (GET "/" _ handle-get-index)
   (POST "/pub/login" _ handle-post-login)
@@ -147,5 +159,7 @@
   (POST "/rename" _ handle-post-rename)
   (PUT "/msg" _ handle-put-msg)
   (GET "/msg" _ handle-get-msg)
-  (GET "/static/file" _ handle-get-static-file))
+  (GET "/static/file" _ handle-get-static-file)
+  ;; (GET ["/pub/staticfile/:path" :path #".*"] _ handle-get-staticfile-by-path)
+  (GET ["/staticfile/:path" :path #".*"] _ handle-get-staticfile-by-path))
 
