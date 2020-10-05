@@ -19,9 +19,12 @@
    [ring.middleware.reload                      :refer [wrap-reload]]
    [compojure.route                             :as route]
    [taoensso.timbre                             :as t :refer [default-timestamp-opts]]
+   [ring.adapter.jetty :refer [run-jetty]]
    [org.httpkit.server                          :refer [run-server]]
    [clojure.string :as s]
-   [buddy.auth.accessrules                      :refer [wrap-access-rules]]))
+   [buddy.auth.accessrules                      :refer [wrap-access-rules]])
+  (:import
+   [org.eclipse.jetty.server Server]))
 
 (def any-access (constantly true))
 
@@ -140,9 +143,27 @@
                        options))
     (t/info "Server start success with options" options)))
 
+(defn start-jetty []
+  (let [dev? (not (s/blank? (env :dev)))
+        ip (env :citron-ip "0.0.0.0")
+        options {:port (Integer/parseInt (env :citron-port "9090"))
+                 :ip ip
+                 :join? false
+                 :host ip
+                 :max-body (Integer/MAX_VALUE)}]
+    (t/info "Dev mode? " (if dev? "true" "false"))
+    (reset! tm-server (run-jetty
+                       (if dev?
+                         (wrap-no-cache (wrap-reload #'app {:dirs ["src" "src-dev"]}))
+                         (routes #'app))
+                       options))
+    (t/info "Server start success with options" options)))
+
 (defn stop-server []
   (when-let [s @tm-server]
-    (s)
+    (if (instance?  s)
+      (.stop s)
+      (s))
     (reset! tm-server nil)))
 
 (defn init! []
@@ -162,7 +183,9 @@
 
 (defn -main []
   @initer
-  (start-server))
+  ;;(start-server)
+  (start-jetty)
+  )
 
 
 (comment
