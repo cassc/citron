@@ -48,8 +48,8 @@
 
 (defn previewable? [file mime]
   (and (.isFile file)
-       (or (not mime)
-           (s/includes? mime "text")
+       mime
+       (or (s/includes? mime "text")
            (s/includes? mime "json"))
        (< (.length file) (* (str->num (env :citron-max-preview-size 1024)) 1024))))
 
@@ -153,10 +153,7 @@
       (not-found "Not found!"))))
 
 (defn handle-get-index [_]
-  (let [prof (if (s/blank? (env :dev))
-               "prod"
-               "dev")]
-    (redirect (format "/index-%s.html" prof))))
+  (redirect "/index.html"))
 
 (defn handle-post-rename [{:keys [params]}]
   (let [{:keys [path filename]} params

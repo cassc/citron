@@ -161,7 +161,7 @@
 
 (defn stop-server []
   (when-let [s @tm-server]
-    (if (instance?  s)
+    (if (instance? Server s)
       (.stop s)
       (s))
     (reset! tm-server nil)))
