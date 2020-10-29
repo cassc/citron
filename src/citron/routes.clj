@@ -24,7 +24,11 @@
 (def page-size 100)
 
 (defn- check-login [{:keys [username password]}]
-  (and (= username password "hello") {:username username}))
+  (and username
+       password
+       (= username (env :citron-username "citron"))
+       (= password (env :citron-password "citron"))
+       {:username username}))
 
 (defn handle-post-login [{:keys [params session]}]
   (if-let [data (check-login params)]
