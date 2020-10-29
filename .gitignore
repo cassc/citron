@@ -1,5 +1,7 @@
 .lein-env
 deploy.sh
+citron.sh
+resources/public
 .cpcache/
 .citron.msg.edn
 .nrepl-port
