@@ -27,10 +27,14 @@
   (mark-dirty))
 
 (defn get-msg []
-  (->> @msg-store vals (sort-by :ts) rest reverse))
+  (->> @msg-store vals (sort-by :ts) reverse))
 
-(defn persist-db! []
-  (spit citron-msg-file @msg-store)
+(defn persist-db! [reload?]
+  (let [msg (if reload?
+              (merge @msg-store (edn/read-string (slurp citron-msg-file)))
+              @msg-store)]
+    (spit citron-msg-file msg)
+    (reset! msg-store msg))
   (reset! dirty? false))
 
 (defn start-msg-store! []
@@ -38,14 +42,15 @@
     (reset! msg-store (edn/read-string (slurp citron-msg-file)))
     (spit citron-msg-file @msg-store))
   (reset! dirty? false)
-  (a/go-loop []
-    (try
-      (when @dirty?
-        (persist-db!)) 
-      (catch Throwable e
-        (t/error "msg-store handle error" e))
-      (finally
-        (<! (timeout 1000))))
-    (recur)))
-
-
+  (let [last-edit (atom (.lastModified citron-msg-file))]
+    (a/go-loop []
+      (try
+        (let [modified? (not= @last-edit (.lastModified citron-msg-file))]
+          (when (or modified? @dirty?)
+            (persist-db! modified?)
+            (reset! last-edit (.lastModified citron-msg-file))))
+        (catch Throwable e
+          (t/error "msg-store handle error" e))
+        (finally
+          (<! (timeout 1000))))
+      (recur))))

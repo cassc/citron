@@ -171,13 +171,13 @@
   (t/merge-config! (make-timbre-config))
   (start-msg-store!)
   (register-shutdownhook
-   #(try
-      (persist-db!)
-      (destroy-lazy-pools)
-      (catch Throwable e
-        (t/error e "Error caught when shutting down ..."))
-      (finally
-        (t/info "Cleaning success!")))))
+    #(try
+       (persist-db! nil)
+       (destroy-lazy-pools)
+       (catch Throwable e
+         (t/error e "Error caught when shutting down ..."))
+       (finally
+         (t/info "Cleaning success!")))))
 
 (def initer (delay (init!)))
 

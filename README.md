@@ -6,6 +6,7 @@ A file server written in Clojure/ClojureScript. Features:
 * Audio play with playlist
 * Image preview
 * File filter
+* Message board for sharing plain text
 
 
 <img src="citron-preview.png"/>
@@ -57,7 +58,7 @@ Open http://localhost:8080 in your browser.
 * `CITRON_USERNAME` sets username.
 * `CITRON_PASSWORD` sets password.
 * `CITRON_FILE_ROOT` set root directory to serve.
-* `CITRON_MAX_PREVIEW_SIZE` sets the maximum file size to display in browser. 
+* `CITRON_MAX_PREVIEW_SIZE` sets the maximum file size to display as plain text in browser. 
 * `CITRON_LOG_FILE` sets the log file path.
 * `CITRON_LOG_LEVEL` sets the log level, valid values are `debug`, `info`, `warn`.
 * `CITRON_IP` sets IP to bind, e.g, `192.168.1.123`. 
